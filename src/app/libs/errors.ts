@@ -15,8 +15,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
 
 export class InAppError extends Error {
 	code: ErrorCode;
-	constructor(code: ErrorCode) {
-		super(ERROR_MESSAGES[code]);
+	constructor(code: ErrorCode, message?: string) {
+		super(message || ERROR_MESSAGES[code]);
 		this.name = "InAppError";
 		this.code = code;
 	}

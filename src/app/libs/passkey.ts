@@ -1,3 +1,5 @@
+"use server";
+
 import type {
 	AuthenticationResponseJSON,
 	GenerateAuthenticationOptionsOpts,
@@ -87,6 +89,7 @@ export const getRegistrationOptions = async ({
 	const options = await generateRegistrationOptions(opts);
 	const challengeKey = getChallengeKey(identifier, rpInfo.rpId);
 	await storeChallenge(challengeKey, options.challenge);
+	console.log("options --->", options);
 	return options;
 };
 

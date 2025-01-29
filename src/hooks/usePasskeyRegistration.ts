@@ -1,0 +1,94 @@
+import { useState } from "react";
+import { startRegistration } from "@simplewebauthn/browser";
+import { toast } from "sonner";
+import { ErrorCode, InAppError } from "@/app/libs/errors";
+
+export const usePasskeyRegistration = (identifier: string) => {
+	const [isCreatingPasskey, setIsCreatingPasskey] = useState<boolean>(false);
+	const [regSuccess, setRegSuccess] = useState<string>("");
+	const [regError, setRegError] = useState<string>("");
+
+	const handleRegister = async () => {
+		setIsCreatingPasskey(true);
+		setRegSuccess("");
+		setRegError("");
+		toast.info("Creando autenticación biométrica...");
+		console.log("Creating passkey for", identifier);
+
+		try {
+			const resp = await fetch("api/generate-registration-options", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					identifier,
+				}),
+			});
+			if (!resp.ok) {
+				const opts = await resp.json();
+				throw new InAppError(ErrorCode.UNEXPECTED_ERROR, opts.error);
+			}
+			const opts = await resp.json();
+
+			console.log("Registration Options", opts);
+
+			const registrationResponse = await startRegistration({
+				optionsJSON: opts,
+			});
+			console.log("Registration Response", registrationResponse);
+
+			const verificationResp = await fetch("api/verify-registration", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					registrationResponse,
+				}),
+			});
+
+			const verificationJSON = await verificationResp.json();
+			console.log("Server Response", verificationJSON);
+
+			if (verificationJSON?.verified) {
+				const message = "Authenticator registered!";
+				setRegSuccess(message);
+				toast.success(message);
+			} else {
+				const message = `Oh no, something went wrong! Response: ${JSON.stringify(verificationJSON)}`;
+				setRegError(message);
+				toast.error(message);
+			}
+		} catch (_error) {
+			const error = _error as Error;
+			if (error.name === "InvalidStateError") {
+				const message =
+					"Error: Authenticator was probably already registered by user";
+				setRegError(message);
+				toast.error(message);
+			} else {
+				let message = error.toString();
+				if (
+					error.message.includes(
+						"The operation either timed out or was not allowed.",
+					)
+				) {
+					message = "Operación cancelada o no permitida";
+				}
+				setRegError(message);
+				toast.error(message);
+			}
+		} finally {
+			setIsCreatingPasskey(false);
+		}
+	};
+
+	return {
+		isCreatingPasskey,
+		regSuccess,
+		regError,
+		handleRegister,
+		isRegistered: Boolean(regSuccess),
+	};
+};

@@ -26,6 +26,7 @@ try {
 		...parsed,
 		CHALLENGE_TTL_MS: parsed.CHALLENGE_TTL_SECONDS * 1000,
 	};
+	console.log(ENV);
 } catch (err) {
 	if (err instanceof z.ZodError) {
 		console.error(err.issues);
