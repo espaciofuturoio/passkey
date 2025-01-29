@@ -3,6 +3,10 @@
 
 ## [Demo](https://passkey-demo.espaciofuturo.io)
 
+<div align="center">
+  <img src="https://github.com/espaciofuturoio/passkey/blob/main/assets/passkey-demo.gif" alt="Passkey Demostration">
+</div>
+
 ## Overview
 
 The Passkey project is a web application that implements WebAuthn for secure user authentication. It leverages the `@simplewebauthn` library to handle registration and authentication processes, using Redis for data storage.
