@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 		origin: req.headers.get("origin") || "",
 	};
 	try {
-		console.log("Generating registration options", input, req.headers);
+		console.log("Generating registration options", input);
 		const options = await getRegistrationOptions(input);
 		return NextResponse.json(options);
 	} catch (error) {

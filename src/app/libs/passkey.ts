@@ -22,7 +22,7 @@ import {
 	getChallenge,
 	getUser,
 	saveUser,
-	storeChallenge,
+	saveChallenge,
 } from "@/app/libs/redis";
 import { ENV } from "@/app/libs/env";
 import { ErrorCode, InAppError } from "@/app/libs/errors";
@@ -30,16 +30,22 @@ import { ErrorCode, InAppError } from "@/app/libs/errors";
 /**
  * Retrieves the RP ID corresponding to the provided host.
  *
- * @param host - The host for which to retrieve the RP ID.
- * @returns The matching RP ID.
+ * @param origin - The host for which to retrieve the RP ID.
+ * @returns The matching RP ID and name.
  * @throws Error if no matching RP ID is found.
  */
-const getRpInfo = (origin: string): { rpName: string; rpId: string } => {
+const getRpInfo = (
+	origin: string,
+): { rpName: string; rpId: string; expectedOrigin: string } => {
 	const index = ENV.EXPECTED_ORIGIN.findIndex(
 		(expectedOrigin) => origin === expectedOrigin,
 	);
 	if (index !== -1)
-		return { rpName: ENV.RP_NAME[index], rpId: ENV.RP_ID[index] };
+		return {
+			rpName: ENV.RP_NAME[index],
+			rpId: ENV.RP_ID[index],
+			expectedOrigin: ENV.EXPECTED_ORIGIN[index],
+		};
 	throw new InAppError(ErrorCode.NO_MATCHING_RP_ID);
 };
 
@@ -50,16 +56,16 @@ export const getRegistrationOptions = async ({
 	identifier: string;
 	origin: string;
 }) => {
-	const rpInfo = getRpInfo(origin);
+	const { rpId, rpName } = getRpInfo(origin);
 	const userResponse = await getUser({
-		rpId: rpInfo.rpId,
+		rpId,
 		identifier,
 	});
 	if (!userResponse) throw new InAppError(ErrorCode.UNEXPECTED_ERROR);
 	const { credentials } = userResponse;
 	const opts: GenerateRegistrationOptionsOpts = {
-		rpName: rpInfo.rpName,
-		rpID: rpInfo.rpId,
+		rpName,
+		rpID: rpId,
 		userName: identifier,
 		timeout: ENV.CHALLENGE_TTL_MS,
 		attestationType: "none",
@@ -82,14 +88,16 @@ export const getRegistrationOptions = async ({
 			userVerification: "preferred",
 		},
 		/**
-		 * Support the two most common algorithms: ES256
+		 * Support the most common algorithm: ES256
 		 */
 		supportedAlgorithmIDs: [-7],
 	};
 	const options = await generateRegistrationOptions(opts);
-	const challengeKey = getChallengeKey(identifier, rpInfo.rpId);
-	await storeChallenge(challengeKey, options.challenge);
-	console.log("options --->", options);
+	await saveChallenge({
+		identifier,
+		rpId,
+		challenge: options.challenge,
+	});
 	return options;
 };
 
@@ -102,12 +110,15 @@ export const verifyRegistration = async ({
 	registrationResponse: RegistrationResponseJSON;
 	origin: string;
 }) => {
-	const rpInfo = getRpInfo(origin);
-	const expectedChallenge = await getChallenge(identifier);
+	const { rpId, expectedOrigin } = getRpInfo(origin);
+	const expectedChallenge = await getChallenge({
+		identifier,
+		rpId,
+	});
 	if (!expectedChallenge) throw new InAppError(ErrorCode.CHALLENGE_NOT_FOUND);
 
 	const userResponse = await getUser({
-		rpId: rpInfo.rpId,
+		rpId,
 		identifier,
 	});
 	if (!userResponse) throw new InAppError(ErrorCode.UNEXPECTED_ERROR);
@@ -116,8 +127,8 @@ export const verifyRegistration = async ({
 	const opts: VerifyRegistrationResponseOpts = {
 		response: registrationResponse,
 		expectedChallenge,
-		expectedOrigin: rpInfo.rpId,
-		expectedRPID: rpInfo.rpId,
+		expectedOrigin: expectedOrigin,
+		expectedRPID: rpId,
 		requireUserVerification: false,
 	};
 	const { verified, registrationInfo } = await verifyRegistrationResponse(opts);
@@ -140,7 +151,7 @@ export const verifyRegistration = async ({
 				transports: registrationResponse.response.transports,
 			};
 			await saveUser({
-				rpId: rpInfo.rpId,
+				rpId,
 				identifier,
 				user: {
 					credentials: [...credentials, newCredential],
@@ -149,12 +160,8 @@ export const verifyRegistration = async ({
 		}
 	}
 
-	await deleteChallenge(identifier);
+	await deleteChallenge({ identifier, rpId });
 	return { verified };
-};
-
-const getChallengeKey = (identifier: string, rpId: string) => {
-	return `${identifier}:${rpId}`;
 };
 
 export const getAuthenticationOptions = async ({
@@ -164,9 +171,9 @@ export const getAuthenticationOptions = async ({
 	identifier: string;
 	origin: string;
 }) => {
-	const rpInfo = getRpInfo(origin);
+	const { rpId } = getRpInfo(origin);
 	const userResponse = await getUser({
-		rpId: rpInfo.rpId,
+		rpId,
 		identifier,
 	});
 	if (!userResponse) throw new InAppError(ErrorCode.UNEXPECTED_ERROR);
@@ -180,12 +187,15 @@ export const getAuthenticationOptions = async ({
 			transports: cred.transports,
 		})),
 		userVerification: "preferred",
-		rpID: rpInfo.rpId,
+		rpID: rpId,
 	};
 
 	const options = await generateAuthenticationOptions(opts);
-	const challengeKey = getChallengeKey(identifier, rpInfo.rpId);
-	await Promise.all([storeChallenge(challengeKey, options.challenge)]);
+	await saveChallenge({
+		identifier,
+		rpId,
+		challenge: options.challenge,
+	});
 	return options;
 };
 
@@ -198,13 +208,15 @@ export const verifyAuthentication = async ({
 	authenticationResponse: AuthenticationResponseJSON;
 	origin: string;
 }) => {
-	const rpInfo = getRpInfo(origin);
-	const challengeKey = getChallengeKey(identifier, rpInfo.rpId);
-	const expectedChallenge = await getChallenge(challengeKey);
+	const { rpId, expectedOrigin } = getRpInfo(origin);
+	const expectedChallenge = await getChallenge({
+		identifier,
+		rpId,
+	});
 	if (!expectedChallenge) throw new InAppError(ErrorCode.CHALLENGE_NOT_FOUND);
 
 	const userResponse = await getUser({
-		rpId: rpInfo.rpId,
+		rpId,
 		identifier,
 	});
 	if (!userResponse) throw new InAppError(ErrorCode.UNEXPECTED_ERROR);
@@ -221,8 +233,8 @@ export const verifyAuthentication = async ({
 	const opts: VerifyAuthenticationResponseOpts = {
 		response: authenticationResponse,
 		expectedChallenge,
-		expectedOrigin: rpInfo.rpId,
-		expectedRPID: rpInfo.rpId,
+		expectedOrigin: expectedOrigin,
+		expectedRPID: rpId,
 		credential: dbCredential,
 		requireUserVerification: false,
 	};
@@ -233,7 +245,7 @@ export const verifyAuthentication = async ({
 		// Update the credential's counter in the DB to the newest count in the authentication
 		credentials[dbCredentialIndex].counter = authenticationInfo.newCounter;
 		await saveUser({
-			rpId: rpInfo.rpId,
+			rpId,
 			identifier,
 			user: {
 				credentials,
@@ -241,7 +253,7 @@ export const verifyAuthentication = async ({
 		});
 	}
 
-	await deleteChallenge(challengeKey);
+	await deleteChallenge({ identifier, rpId });
 
 	return { verified };
 };

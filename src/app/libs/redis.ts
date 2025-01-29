@@ -9,8 +9,10 @@ import type {
 
 const getRedis = () => {
 	if (!ENV.REDIS_URL) {
+		console.log("No REDIS_URL found, using RedisMock");
 		return new RedisMock();
 	}
+	console.log("Using Redis", ENV.REDIS_URL);
 	return new Redis(ENV.REDIS_URL);
 };
 
@@ -24,19 +26,46 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
 	return new Uint8Array(Buffer.from(base64, "base64"));
 };
 
-export const storeChallenge = async (
-	key: string,
-	challenge: string,
-): Promise<void> => {
-	await redis.set(key, challenge, "EX", ENV.CHALLENGE_TTL_SECONDS);
+const getChallengeKey = (identifier: string, rpId: string) => {
+	const key = `challenge:${rpId}:${identifier}`;
+	console.log("getChallengeKey", key);
+	return key;
 };
 
-export const getChallenge = async (key: string): Promise<string | null> => {
-	return await redis.get(key);
+export const saveChallenge = async ({
+	identifier,
+	rpId,
+	challenge,
+}: {
+	identifier: string;
+	rpId: string;
+	challenge: string;
+}) => {
+	const key = getChallengeKey(identifier, rpId);
+	console.log("saveChallenge", key, challenge);
+	return redis.set(key, challenge, "EX", ENV.CHALLENGE_TTL_SECONDS);
 };
 
-export const deleteChallenge = async (key: string): Promise<void> => {
-	await redis.del(key);
+export const getChallenge = async ({
+	identifier,
+	rpId,
+}: {
+	identifier: string;
+	rpId: string;
+}): Promise<string | null> => {
+	const key = getChallengeKey(identifier, rpId);
+	return redis.get(key);
+};
+
+export const deleteChallenge = async ({
+	identifier,
+	rpId,
+}: {
+	identifier: string;
+	rpId: string;
+}) => {
+	const key = getChallengeKey(identifier, rpId);
+	return redis.del(key);
 };
 
 export type WebAuthnCredentialJSON = {

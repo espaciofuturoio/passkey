@@ -45,6 +45,7 @@ export const usePasskeyRegistration = (identifier: string) => {
 				},
 				body: JSON.stringify({
 					registrationResponse,
+					identifier,
 				}),
 			});
 
