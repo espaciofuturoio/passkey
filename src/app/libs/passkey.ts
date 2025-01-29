@@ -1,5 +1,3 @@
-"use server";
-
 import type {
 	AuthenticationResponseJSON,
 	GenerateAuthenticationOptionsOpts,
@@ -257,3 +255,10 @@ export const verifyAuthentication = async ({
 
 	return { verified };
 };
+
+// References
+
+// https://passkeys.dev/docs/use-cases/bootstrapping/#a-note-about-user-verification
+// https://simplewebauthn.dev/docs/advanced/example-project
+// https://www.passkeys.com/guide#backend-setup
+// https://github.com/kalepail/soroban-passkey?tab=readme-ov-file#soropass
