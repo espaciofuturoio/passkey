@@ -16,25 +16,28 @@ export const usePasskeyRegistration = (identifier: string) => {
 		console.log("Creating passkey for", identifier);
 
 		try {
-			const resp = await fetch("api/generate-registration-options", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const registrationOptionsResp = await fetch(
+				"api/generate-registration-options",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						identifier,
+					}),
 				},
-				body: JSON.stringify({
-					identifier,
-				}),
-			});
-			if (!resp.ok) {
-				const opts = await resp.json();
+			);
+			if (!registrationOptionsResp.ok) {
+				const opts = await registrationOptionsResp.json();
 				throw new InAppError(ErrorCode.UNEXPECTED_ERROR, opts.error);
 			}
-			const opts = await resp.json();
+			const registrationOptions = await registrationOptionsResp.json();
 
-			console.log("Registration Options", opts);
+			console.log("Registration Options", registrationOptions);
 
 			const registrationResponse = await startRegistration({
-				optionsJSON: opts,
+				optionsJSON: registrationOptions,
 			});
 			console.log("Registration Response", registrationResponse);
 
@@ -48,6 +51,14 @@ export const usePasskeyRegistration = (identifier: string) => {
 					identifier,
 				}),
 			});
+
+			if (!verificationResp.ok) {
+				const verificationJSON = await verificationResp.json();
+				throw new InAppError(
+					ErrorCode.UNEXPECTED_ERROR,
+					verificationJSON.error,
+				);
+			}
 
 			const verificationJSON = await verificationResp.json();
 			console.log("Server Response", verificationJSON);

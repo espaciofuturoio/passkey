@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { toast } from "sonner";
+import { ErrorCode } from "@/app/libs/errors";
+import { InAppError } from "@/app/libs/errors";
 
 export const usePasskeyAuthentication = (identifier: string) => {
 	const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
@@ -22,12 +24,18 @@ export const usePasskeyAuthentication = (identifier: string) => {
 					identifier,
 				}),
 			});
-			const opts = await resp.json();
 
-			console.log("Authentication Options", opts);
+			if (!resp.ok) {
+				const opts = await resp.json();
+				throw new InAppError(ErrorCode.UNEXPECTED_ERROR, opts.error);
+			}
+
+			const authenticationOptions = await resp.json();
+
+			console.log("Authentication Options", authenticationOptions);
 
 			const authenticationResponse = await startAuthentication({
-				optionsJSON: opts,
+				optionsJSON: authenticationOptions,
 			});
 			console.log("Authentication Response", authenticationResponse);
 
@@ -41,6 +49,14 @@ export const usePasskeyAuthentication = (identifier: string) => {
 					authenticationResponse,
 				}),
 			});
+
+			if (!verificationResp.ok) {
+				const verificationJSON = await verificationResp.json();
+				throw new InAppError(
+					ErrorCode.UNEXPECTED_ERROR,
+					verificationJSON.error,
+				);
+			}
 
 			const verificationJSON = await verificationResp.json();
 			console.log("Server Response", verificationJSON);
