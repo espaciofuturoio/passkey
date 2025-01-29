@@ -8,6 +8,12 @@ export const usePasskeyRegistration = (identifier: string) => {
 	const [regSuccess, setRegSuccess] = useState<string>("");
 	const [regError, setRegError] = useState<string>("");
 
+	const reset = () => {
+		setIsCreatingPasskey(false);
+		setRegSuccess("");
+		setRegError("");
+	};
+
 	const handleRegister = async () => {
 		setIsCreatingPasskey(true);
 		setRegSuccess("");
@@ -25,6 +31,7 @@ export const usePasskeyRegistration = (identifier: string) => {
 					},
 					body: JSON.stringify({
 						identifier,
+						origin: window.location.origin,
 					}),
 				},
 			);
@@ -49,6 +56,7 @@ export const usePasskeyRegistration = (identifier: string) => {
 				body: JSON.stringify({
 					registrationResponse,
 					identifier,
+					origin: window.location.origin,
 				}),
 			});
 
@@ -86,7 +94,7 @@ export const usePasskeyRegistration = (identifier: string) => {
 						"The operation either timed out or was not allowed.",
 					)
 				) {
-					message = "Operación cancelada o no permitida";
+					message = "Operation cancelled or not allowed";
 				}
 				setRegError(message);
 				toast.error(message);
@@ -102,5 +110,6 @@ export const usePasskeyRegistration = (identifier: string) => {
 		regError,
 		handleRegister,
 		isRegistered: Boolean(regSuccess),
+		reset,
 	};
 };

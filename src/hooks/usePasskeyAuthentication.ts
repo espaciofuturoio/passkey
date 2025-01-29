@@ -9,6 +9,12 @@ export const usePasskeyAuthentication = (identifier: string) => {
 	const [authSuccess, setAuthSuccess] = useState<string>("");
 	const [authError, setAuthError] = useState<string>("");
 
+	const reset = () => {
+		setIsAuthenticating(false);
+		setAuthSuccess("");
+		setAuthError("");
+	};
+
 	const handleAuth = async () => {
 		setIsAuthenticating(true);
 		setAuthSuccess("");
@@ -22,6 +28,7 @@ export const usePasskeyAuthentication = (identifier: string) => {
 				},
 				body: JSON.stringify({
 					identifier,
+					origin: window.location.origin,
 				}),
 			});
 
@@ -47,6 +54,7 @@ export const usePasskeyAuthentication = (identifier: string) => {
 				body: JSON.stringify({
 					identifier,
 					authenticationResponse,
+					origin: window.location.origin,
 				}),
 			});
 
@@ -78,7 +86,7 @@ export const usePasskeyAuthentication = (identifier: string) => {
 					"The operation either timed out or was not allowed.",
 				)
 			) {
-				message = "Operación cancelada o no permitida";
+				message = "Operation cancelled or not allowed";
 			}
 			setAuthError(message);
 			toast.error(message);
@@ -93,5 +101,6 @@ export const usePasskeyAuthentication = (identifier: string) => {
 		authError,
 		handleAuth,
 		isAuthenticated: Boolean(authSuccess),
+		reset,
 	};
 };

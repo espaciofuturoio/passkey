@@ -16,6 +16,7 @@ export const PasskeyDashboard = () => {
 		regError,
 		handleRegister,
 		isRegistered,
+		reset: resetReg,
 	} = usePasskeyRegistration(identifier);
 
 	const {
@@ -24,6 +25,7 @@ export const PasskeyDashboard = () => {
 		authError,
 		handleAuth,
 		isAuthenticated,
+		reset: resetAuth,
 	} = usePasskeyAuthentication(identifier);
 
 	// State for action
@@ -40,8 +42,12 @@ export const PasskeyDashboard = () => {
 		toast(`Processing ${action}...`);
 
 		if (action === "register") {
+			resetReg();
+			resetAuth();
 			handleRegister();
 		} else if (action === "verify") {
+			resetAuth();
+			resetReg();
 			handleAuth();
 		}
 	};

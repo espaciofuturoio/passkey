@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
 	try {
 		const input = {
-			origin: req.headers.get("origin") || "",
+			origin: req.headers.get("origin"),
 			headers: req.headers,
 		};
 		console.log("Getting config", input);

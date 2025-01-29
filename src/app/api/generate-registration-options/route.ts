@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
 	const body = await req.json();
 	const input = {
 		identifier: body.identifier,
-		origin: req.headers.get("origin") || "",
+		origin: req.headers.get("origin") || body.origin || "",
 	};
 	try {
 		console.log("Generating registration options", input);
