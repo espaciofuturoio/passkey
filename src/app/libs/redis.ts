@@ -12,7 +12,8 @@ const getRedis = () => {
 		console.log("No REDIS_URL found, using RedisMock");
 		return new RedisMock();
 	}
-	console.log("Using Redis", ENV.REDIS_URL);
+
+	console.log("Using Redis URL", ENV.REDIS_URL.replace(/[A-Z]/g, "-"));
 	return new Redis(ENV.REDIS_URL);
 };
 

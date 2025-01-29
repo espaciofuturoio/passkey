@@ -3,6 +3,7 @@ export async function GET(req: NextRequest) {
 	try {
 		const input = {
 			origin: req.headers.get("origin") || "",
+			headers: req.headers,
 		};
 		console.log("Getting config", input);
 		return NextResponse.json(input);
