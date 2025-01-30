@@ -27,7 +27,7 @@ The Passkey project is a web application that implements WebAuthn for secure use
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/passkey.git
+   git clone git@github.com:espaciofuturoio/passkey.git
    cd passkey
    ```
 
