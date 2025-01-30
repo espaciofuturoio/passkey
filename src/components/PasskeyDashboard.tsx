@@ -5,9 +5,16 @@ import * as Form from "@radix-ui/react-form";
 import { toast } from "sonner";
 import { usePasskeyRegistration } from "../hooks/usePasskeyRegistration";
 import { usePasskeyAuthentication } from "../hooks/usePasskeyAuthentication";
+import { useStellar } from "@/hooks/useStellar/useStellar";
+import { truncateAccount } from "@/app/libs/stellar";
+import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faClipboard } from "@fortawesome/free-solid-svg-icons";
 
 export const PasskeyDashboard = () => {
 	const identifier = "test"; // Replace with actual identifier logic if needed
+
+	const { onRegister, onSign, deployee, loadingDeployee } = useStellar();
 
 	// Use the hooks
 	const {
@@ -17,7 +24,7 @@ export const PasskeyDashboard = () => {
 		handleRegister,
 		isRegistered,
 		reset: resetReg,
-	} = usePasskeyRegistration(identifier);
+	} = usePasskeyRegistration(identifier, { onRegister });
 
 	const {
 		isAuthenticating,
@@ -26,7 +33,7 @@ export const PasskeyDashboard = () => {
 		handleAuth,
 		isAuthenticated,
 		reset: resetAuth,
-	} = usePasskeyAuthentication(identifier);
+	} = usePasskeyAuthentication(identifier, { onSign });
 
 	// State for action
 	const [action, setAction] = React.useState<string | null>(null);
@@ -51,6 +58,21 @@ export const PasskeyDashboard = () => {
 			handleAuth();
 		}
 	};
+
+	const copyToClipboard = (text: string) => {
+		navigator.clipboard.writeText(text).then(
+			() => {
+				toast("Copied to clipboard!");
+			},
+			(err) => {
+				console.error("Could not copy text: ", err);
+			},
+		);
+	};
+
+	if (!browserSupportsWebAuthn()) {
+		return <div>WebAuthn is not supported</div>;
+	}
 
 	return (
 		<div className="bg-white shadow-lg rounded-lg p-8 max-w-md mx-auto">
@@ -79,28 +101,52 @@ export const PasskeyDashboard = () => {
 						Please enter a username
 					</Form.Message>
 				</Form.Field>
-				<div className="mt-6 flex space-x-4">
-					<Form.Submit asChild>
-						<button
-							className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
-							type="submit"
-							onClick={() => setAction("register")}
-							disabled={isCreatingPasskey}
-						>
-							{isCreatingPasskey ? "Registering..." : "Register Passkey"}
-						</button>
-					</Form.Submit>
-					<Form.Submit asChild>
-						<button
-							className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200"
-							type="submit"
-							onClick={() => setAction("verify")}
-							disabled={isAuthenticating}
-						>
-							{isAuthenticating ? "Authenticating..." : "Verify Passkey"}
-						</button>
-					</Form.Submit>
-				</div>
+
+				{deployee || loadingDeployee ? (
+					<div className="mt-6 flex space-x-4 items-center">
+						<p className="text-sm text-gray-500">
+							{deployee
+								? `Stellar Account: ${truncateAccount(deployee)}`
+								: "Checking Stellar Account..."}
+						</p>
+						{deployee && (
+							<button
+								type="button"
+								className="text-sm text-blue-500 hover:underline flex items-center"
+								onClick={() => copyToClipboard(deployee)}
+							>
+								<FontAwesomeIcon icon={faClipboard} className="mr-1" />
+								Copy
+							</button>
+						)}
+					</div>
+				) : null}
+				{!loadingDeployee && (
+					<div className="mt-6 flex space-x-4">
+						{!deployee ? (
+							<Form.Submit asChild>
+								<button
+									className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
+									type="submit"
+									onClick={() => setAction("register")}
+									disabled={isCreatingPasskey}
+								>
+									{isCreatingPasskey ? "Registering..." : "Register Passkey"}
+								</button>
+							</Form.Submit>
+						) : null}
+						<Form.Submit asChild>
+							<button
+								className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200"
+								type="submit"
+								onClick={() => setAction("verify")}
+								disabled={isAuthenticating}
+							>
+								{isAuthenticating ? "Authenticating..." : "Verify Passkey"}
+							</button>
+						</Form.Submit>
+					</div>
+				)}
 			</Form.Root>
 			{regSuccess && (
 				<p className="mt-4 text-green-600 font-medium">{regSuccess}</p>

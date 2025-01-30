@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { startRegistration } from "@simplewebauthn/browser";
+import {
+	type RegistrationResponseJSON,
+	startRegistration,
+} from "@simplewebauthn/browser";
 import { toast } from "sonner";
 import { ErrorCode, InAppError } from "@/app/libs/errors";
 
-export const usePasskeyRegistration = (identifier: string) => {
+export const usePasskeyRegistration = (
+	identifier: string,
+	{ onRegister }: { onRegister?: (res: RegistrationResponseJSON) => void },
+) => {
 	const [isCreatingPasskey, setIsCreatingPasskey] = useState<boolean>(false);
 	const [regSuccess, setRegSuccess] = useState<string>("");
 	const [regError, setRegError] = useState<string>("");
@@ -75,6 +81,7 @@ export const usePasskeyRegistration = (identifier: string) => {
 				const message = "Authenticator registered!";
 				setRegSuccess(message);
 				toast.success(message);
+				onRegister?.(registrationResponse);
 			} else {
 				const message = `Oh no, something went wrong! Response: ${JSON.stringify(verificationJSON)}`;
 				setRegError(message);

@@ -45,6 +45,22 @@ const envSchema = z.object({
 		})
 		.default('["http://localhost:3000"]'),
 	CHALLENGE_TTL_SECONDS: z.coerce.number().default(60),
+	NETWORK_PASSPHRASE: z
+		.string()
+		.default("Test SDF Future Network ; October 2022"),
+	CHICKEN_VS_EGG_CONTRACT_ID: z
+		.string()
+		.default("CADVRBYFMG6RIRFP6VOAATDCZERWPCNGFKQ7KYPD3D4FAI7VZ7WFNDSB"),
+	FACTORY_CONTRACT_ID: z
+		.string()
+		.default("CCZWIOWKT4WGJQHWZFF7ARCQJFVWRXPOKG4WGY6DOZ72OHZEMKXAEGRO"),
+	ACCOUNT_SECP256R1_CONTRACT_WASM: z
+		.string()
+		.default(
+			"23d8e1fbdb0bb903815feb7d07b675db98b5376feedab056aab61910d41e80c1",
+		),
+	RPC_URL: z.string().default("https://rpc-futurenet.stellar.org"),
+	HORIZON_URL: z.string().default("https://horizon-futurenet.stellar.org"),
 });
 
 type Env = z.infer<typeof envSchema>;

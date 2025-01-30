@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { startAuthentication } from "@simplewebauthn/browser";
+import {
+	type AuthenticationResponseJSON,
+	startAuthentication,
+} from "@simplewebauthn/browser";
 import { toast } from "sonner";
 import { ErrorCode } from "@/app/libs/errors";
 import { InAppError } from "@/app/libs/errors";
 
-export const usePasskeyAuthentication = (identifier: string) => {
+export const usePasskeyAuthentication = (
+	identifier: string,
+	{ onSign }: { onSign?: (res: AuthenticationResponseJSON) => void },
+) => {
 	const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 	const [authSuccess, setAuthSuccess] = useState<string>("");
 	const [authError, setAuthError] = useState<string>("");
@@ -73,6 +79,7 @@ export const usePasskeyAuthentication = (identifier: string) => {
 				const message = "User authenticated!";
 				setAuthSuccess(message);
 				toast.success(message);
+				onSign?.(authenticationResponse);
 			} else {
 				const message = `Oh no, something went wrong! Response: ${JSON.stringify(verificationJSON)}`;
 				setAuthError(message);
