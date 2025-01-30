@@ -90,7 +90,7 @@ export const PasskeyDashboard = () => {
 	if (!isWebAuthnSupported) return <div>WebAuthn is not supported</div>;
 
 	return (
-		<div className="bg-white shadow-lg rounded-lg p-8 max-w-md mx-auto">
+		<div className="bg-white shadow-lg rounded-lg p-8 max-w-xl mx-auto">
 			<h2 className="text-2xl font-bold mb-6 text-indigo-800">
 				Passkey Management
 			</h2>

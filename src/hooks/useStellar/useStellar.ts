@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Horizon, Keypair } from "@stellar/stellar-sdk";
-import type {
-	Memo,
-	Operation,
-	Transaction,
-	MemoType,
-} from "@stellar/stellar-sdk";
 import { ENV } from "@/app/libs/env";
 import type {
-	AuthenticationResponseJSON,
 	RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
 import { getPublicKeys } from "@/app/libs/stellar";
@@ -89,9 +82,9 @@ export const useStellar = () => {
 		if (!bundlerKey.current) throw new Error("Bundler key not found");
 		if (!deployee) throw new Error("Deployee not found");
 		const { authTxn, authHash, lastLedger } = await handleVoteBuild(
-			bundlerKey.current,
+			bundlerKey.current.publicKey(),
 			deployee,
-			true,
+			true, // Response to vote for chicken, for demo purposes
 		);
 		const base64urlAuthHash = base64url(authHash);
 		return { authTxn, base64urlAuthHash, lastLedger };

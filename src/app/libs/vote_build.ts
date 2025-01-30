@@ -14,7 +14,7 @@ import {
 const { RPC_URL, NETWORK_PASSPHRASE, CHICKEN_VS_EGG_CONTRACT_ID } = ENV;
 
 export const handleVoteBuild = async (
-	bundlerKey: Keypair,
+	bundlerPublicKey: string,
 	accountContractId: string,
 	vote: boolean,
 ) => {
@@ -23,7 +23,7 @@ export const handleVoteBuild = async (
 		.getLatestLedger()
 		.then(({ sequence }) => sequence);
 	const bundlerKeyAccount = await rpc
-		.getAccount(bundlerKey.publicKey())
+		.getAccount(bundlerPublicKey)
 		.then((res) => new Account(res.accountId(), res.sequenceNumber()));
 
 	const simTxn = new TransactionBuilder(bundlerKeyAccount, {
