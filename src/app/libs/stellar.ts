@@ -2,6 +2,10 @@ import { hash } from "@stellar/stellar-sdk";
 import base64url from "base64url";
 import * as CBOR from "cbor-x/decode";
 import { bufToBigint, bigintToBuf } from "bigint-conversion";
+import type {
+	AuthenticationResponseJSON,
+	RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
 
 export const truncateAccount = (account: string) => {
 	return `${account.slice(0, 5)}...${account.slice(-5)}`;
@@ -73,12 +77,15 @@ const getPublicKeyObject = (attestationObject: string) => {
 	throw new Error("Attested credential data not present in the flags.");
 };
 
-export const getPublicKeys = async (registration: any) => {
+export const getPublicKeys = async (
+	registration: RegistrationResponseJSON | AuthenticationResponseJSON,
+) => {
 	const contractSalt = hash(base64url.toBuffer(registration.id));
 
 	console.log(JSON.stringify(registration, null, 2));
 
-	if (registration.response.attestationObject) {
+	if ("attestationObject" in registration.response) {
+		// Handle RegistrationResponseJSON
 		const { publicKeyObject } = getPublicKeyObject(
 			registration.response.attestationObject,
 		);
@@ -92,11 +99,10 @@ export const getPublicKeys = async (registration: any) => {
 			contractSalt,
 			publicKey,
 		};
-	} else {
-		return {
-			contractSalt,
-		};
 	}
+	return {
+		contractSalt,
+	};
 };
 
 export const convertEcdsaSignatureAsnToCompact = (sig: Buffer) => {

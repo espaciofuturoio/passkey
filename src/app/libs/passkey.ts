@@ -24,6 +24,7 @@ import {
 } from "@/app/libs/redis";
 import { ENV } from "@/app/libs/env";
 import { ErrorCode, InAppError } from "@/app/libs/errors";
+import base64url from "base64url";
 
 /**
  * Retrieves the RP ID corresponding to the provided host.
@@ -165,9 +166,11 @@ export const verifyRegistration = async ({
 export const getAuthenticationOptions = async ({
 	identifier,
 	origin,
+	challenge,
 }: {
 	identifier: string;
 	origin: string;
+	challenge?: string;
 }) => {
 	const { rpId } = getRpInfo(origin);
 	const userResponse = await getUser({
@@ -184,6 +187,7 @@ export const getAuthenticationOptions = async ({
 			type: "public-key",
 			transports: cred.transports,
 		})),
+		...(challenge && { challenge: base64url.toBuffer(challenge) }),
 		userVerification: "preferred",
 		rpID: rpId,
 	};

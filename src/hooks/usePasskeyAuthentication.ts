@@ -6,10 +6,17 @@ import {
 import { toast } from "sonner";
 import { ErrorCode } from "@/app/libs/errors";
 import { InAppError } from "@/app/libs/errors";
+import type { PresignData, SignParams } from "./useStellar/types";
 
 export const usePasskeyAuthentication = (
 	identifier: string,
-	{ onSign }: { onSign?: (res: AuthenticationResponseJSON) => void },
+	{
+		onSign,
+		prepareSign,
+	}: {
+		onSign?: (params: SignParams) => void;
+		prepareSign?: () => Promise<PresignData>;
+	},
 ) => {
 	const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 	const [authSuccess, setAuthSuccess] = useState<string>("");
@@ -27,6 +34,7 @@ export const usePasskeyAuthentication = (
 		setAuthError("");
 
 		try {
+			const presignData = await prepareSign?.();
 			const resp = await fetch("api/generate-authentication-options", {
 				method: "POST",
 				headers: {
@@ -35,6 +43,7 @@ export const usePasskeyAuthentication = (
 				body: JSON.stringify({
 					identifier,
 					origin: window.location.origin,
+					challenge: presignData?.base64urlAuthHash,
 				}),
 			});
 
@@ -43,7 +52,7 @@ export const usePasskeyAuthentication = (
 				throw new InAppError(ErrorCode.UNEXPECTED_ERROR, opts.error);
 			}
 
-			const authenticationOptions = await resp.json();
+			const authenticationOptions = await resp.json(); // TODO: type this
 
 			console.log("Authentication Options", authenticationOptions);
 
@@ -79,7 +88,13 @@ export const usePasskeyAuthentication = (
 				const message = "User authenticated!";
 				setAuthSuccess(message);
 				toast.success(message);
-				onSign?.(authenticationResponse);
+				if (onSign && presignData) {
+					onSign({
+						signRes: authenticationResponse,
+						authTxn: presignData.authTxn,
+						lastLedger: presignData.lastLedger,
+					});
+				}
 			} else {
 				const message = `Oh no, something went wrong! Response: ${JSON.stringify(verificationJSON)}`;
 				setAuthError(message);

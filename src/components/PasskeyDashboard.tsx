@@ -10,11 +10,20 @@ import { truncateAccount } from "@/app/libs/stellar";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboard } from "@fortawesome/free-solid-svg-icons";
+import { useEffect } from "react";
 
 export const PasskeyDashboard = () => {
 	const identifier = "test"; // Replace with actual identifier logic if needed
+	const [isWebAuthnSupported, setIsWebAuthnSupported] = React.useState(false);
 
-	const { onRegister, onSign, deployee, loadingDeployee } = useStellar();
+	const {
+		onRegister,
+		onSign,
+		deployee,
+		loadingDeployee,
+		prepareSign,
+		contractData,
+	} = useStellar();
 
 	// Use the hooks
 	const {
@@ -33,7 +42,7 @@ export const PasskeyDashboard = () => {
 		handleAuth,
 		isAuthenticated,
 		reset: resetAuth,
-	} = usePasskeyAuthentication(identifier, { onSign });
+	} = usePasskeyAuthentication(identifier, { onSign, prepareSign });
 
 	// State for action
 	const [action, setAction] = React.useState<string | null>(null);
@@ -70,9 +79,15 @@ export const PasskeyDashboard = () => {
 		);
 	};
 
-	if (!browserSupportsWebAuthn()) {
-		return <div>WebAuthn is not supported</div>;
-	}
+	useEffect(() => {
+		if (!browserSupportsWebAuthn()) {
+			setIsWebAuthnSupported(false);
+		} else {
+			setIsWebAuthnSupported(true);
+		}
+	}, []);
+
+	if (!isWebAuthnSupported) return <div>WebAuthn is not supported</div>;
 
 	return (
 		<div className="bg-white shadow-lg rounded-lg p-8 max-w-md mx-auto">
@@ -142,7 +157,11 @@ export const PasskeyDashboard = () => {
 								onClick={() => setAction("verify")}
 								disabled={isAuthenticating}
 							>
-								{isAuthenticating ? "Authenticating..." : "Verify Passkey"}
+								{isAuthenticating
+									? "Authenticating..."
+									: !deployee
+										? "Verify Passkey"
+										: "Sign Transaction"}
 							</button>
 						</Form.Submit>
 					</div>
@@ -157,6 +176,11 @@ export const PasskeyDashboard = () => {
 			)}
 			{authError && (
 				<p className="mt-4 text-red-600 font-medium">{authError}</p>
+			)}
+			{contractData && (
+				<pre className="mt-4 text-green-600 font-medium">
+					{JSON.stringify(contractData, null, 2)}
+				</pre>
 			)}
 		</div>
 	);

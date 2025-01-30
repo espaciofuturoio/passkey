@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
 	const input = {
 		identifier: body.identifier,
 		origin: req.headers.get("origin") || body.origin || "",
+		challenge: body.challenge,
 	};
 	try {
 		console.log("Generating authentication options", input);

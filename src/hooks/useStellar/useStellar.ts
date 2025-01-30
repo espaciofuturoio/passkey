@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Horizon, Keypair } from "@stellar/stellar-sdk";
+import type {
+	Memo,
+	Operation,
+	Transaction,
+	MemoType,
+} from "@stellar/stellar-sdk";
 import { ENV } from "@/app/libs/env";
 import type {
 	AuthenticationResponseJSON,
 	RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
 import { getPublicKeys } from "@/app/libs/stellar";
-import { handleDeploy } from "./deploy";
+import { handleDeploy } from "../../app/libs/deploy";
+import { handleVoteBuild } from "@/app/libs/vote_build";
+import { handleVoteSend } from "@/app/libs/vote_send";
+import { getVotes } from "@/app/libs/get_votes";
+import base64url from "base64url";
+import type { PresignData, SignParams } from "./types";
 
 const { HORIZON_URL } = ENV;
 
@@ -30,8 +41,17 @@ const setStoredCredentialId = (credentials: string) => {
 	localStorage.setItem("sp:id", credentials);
 };
 
-const getStoredCredentialId = () => {
-	return localStorage.getItem("sp:id");
+// Not required for now, just for testing
+// const getStoredCredentialId = () => {
+// 	return localStorage.getItem("sp:id");
+// };
+
+const onVotes = async (bundlerKey: Keypair, deployee: string) => {
+	if (bundlerKey && deployee) {
+		const votes = await getVotes(bundlerKey, deployee);
+		console.log("--- votes ---", votes);
+		return votes;
+	}
 };
 
 export const useStellar = () => {
@@ -40,6 +60,7 @@ export const useStellar = () => {
 	const bundlerKey = useRef<Keypair | null>(null);
 	const [loadingRegister, setLoadingRegister] = useState(false);
 	const [loadingSign, setLoadingSign] = useState(false);
+	const [contractData, setContractData] = useState<any | null>(null); // Just for testing
 
 	const onRegister = async (registerRes: RegistrationResponseJSON) => {
 		if (deployee) return;
@@ -64,10 +85,26 @@ export const useStellar = () => {
 		}
 	};
 
-	const onSign = async (signinRes: AuthenticationResponseJSON) => {
-		if (!deployee) return;
+	const prepareSign = async (): Promise<PresignData> => {
+		if (!bundlerKey.current) throw new Error("Bundler key not found");
+		if (!deployee) throw new Error("Deployee not found");
+		const { authTxn, authHash, lastLedger } = await handleVoteBuild(
+			bundlerKey.current,
+			deployee,
+			true,
+		);
+		const base64urlAuthHash = base64url(authHash);
+		return { authTxn, base64urlAuthHash, lastLedger };
+	};
+
+	const onSign = async ({ signRes, authTxn, lastLedger }: SignParams) => {
 		try {
 			setLoadingSign(true);
+			if (!bundlerKey.current) throw new Error("Bundler key not found");
+			if (!deployee) throw new Error("Deployee not found");
+			await handleVoteSend(bundlerKey.current, authTxn, lastLedger, signRes);
+			const votes = await onVotes(bundlerKey.current, deployee);
+			setContractData(votes);
 		} catch (error) {
 			console.error(error);
 		} finally {
@@ -93,11 +130,6 @@ export const useStellar = () => {
 				if (storedDeployee) {
 					setDeployee(storedDeployee);
 				}
-
-				console.log({
-					bundlerKey: bundlerKey.current,
-					deployee,
-				});
 			} catch (error) {
 				console.error(error);
 			} finally {
@@ -109,14 +141,14 @@ export const useStellar = () => {
 		init();
 	}, []);
 
-	console.log({ deployee, loadingDeployee });
-
 	return {
 		onRegister,
 		onSign,
+		prepareSign,
 		deployee,
 		loadingRegister,
 		loadingSign,
 		loadingDeployee,
+		contractData,
 	};
 };
